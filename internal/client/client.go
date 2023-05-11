@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/notivenl/uptime-kubernetes/pkg/config"
@@ -29,7 +30,9 @@ type UptimeClient struct {
 	output process.Output
 
 	Timeout time.Duration
-	stop    chan bool
+
+	tickMutex sync.Mutex
+	stop      chan bool
 }
 
 // NewUptimeClient creates a new UptimeClient.
@@ -81,7 +84,7 @@ func (c *UptimeClient) Start() {
 		select {
 		case <-ticker.C:
 			fmt.Println("Checking ingresses...")
-			go c.Tick()
+			go c.Tick() // needs to be in seperate goroutine to prevent blocking
 
 		case ingress := <-c.ingressChan:
 			fmt.Println("Processing ingress...")
@@ -105,13 +108,16 @@ func (c *UptimeClient) Stop() {
 
 // IngressChan requests the ingresses from the Kubernetes API and feeds them into the input channel.
 func (c *UptimeClient) Tick() {
-	ingresses, err := c.Client.GetIngresses(c.Context)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	if c.tickMutex.TryLock() { // prevents multiple ticks from running at the same time
+		ingresses, err := c.Client.GetIngresses(c.Context)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
-	for _, ingress := range ingresses {
-		c.ingressChan <- ingress
+		for _, ingress := range ingresses {
+			c.ingressChan <- ingress
+		}
+		c.tickMutex.Unlock()
 	}
 }
