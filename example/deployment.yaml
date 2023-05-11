@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+  labels:
+    app: example
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+        - name: example
+          image: httpd:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: PORT
+              value: "80"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uptime-deployment
+  labels:
+    app: uptime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uptime
+  template:
+    metadata:
+      labels:
+        app: uptime
+    spec:
+      containers:
+        - name: uptime
+          image: notive.io/uptime:latest
+          imagePullPolicy: Never
+          env:
+            - name: TICKSPEED
+              value: "60"
+            - name: INPUT
+              value: annotation
+            - name: OUTPUT
+              value: uptimerobot
+            - name: UPTIMEROBOT_API_TOKEN
+              value: <api-token>
+            

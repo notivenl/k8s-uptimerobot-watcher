@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    io.notive.health/protocol: http
+    io.notive.health/method: GET
+    io.notive.health/check: /health
+    io.notive.health/body: "{\"status\": \"ok\"}"
+    io.notive.health/status: "200"
+    io.notive.health/header-custom-header: "custom-value"
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /example
+        pathType: Prefix
+        backend:
+          service:
+            name: example-service
+            port:
+              number: 80
